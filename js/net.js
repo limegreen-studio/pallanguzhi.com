@@ -11,7 +11,7 @@
   // Cloudflare Turnstile sitekey: proves a person, not a script, is starting the game.
   // Empty = no check. On localhost, run `localStorage.setItem('pz-ts', '1')` to try it with
   // Cloudflare's always-pass test key (the Worker needs server/.dev.vars, see .dev.vars.example).
-  const SITEKEY_PROD = '';
+  const SITEKEY_PROD = '0x4AAAAAAGEyCljcvQ7P5r3R';
   let SITEKEY = SITEKEY_PROD;
   if (LOCAL) { try { SITEKEY = localStorage.getItem('pz-ts') ? '1x00000000000000000000AA' : ''; } catch (e) { SITEKEY = ''; } }
 
