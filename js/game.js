@@ -823,6 +823,8 @@
   function mpView(view, status) {
     mpEl.hidden = false;
     $('.mp-pick').hidden = view !== 'pick';
+    $('.mp-join').hidden = view !== 'pick';
+    $('.mp-code').hidden = view !== 'link';
     $('.mp-wait').hidden = view === 'pick';
     $('.mp-link').hidden = view !== 'link';
     $('.mp-dots').hidden = view === 'fail';
@@ -830,7 +832,29 @@
     if (status) $('.mp-status').innerHTML = status;
   }
 
-  function mpOpen() { mpView('pick'); }
+  function mpOpen() {
+    mpView('pick');
+    $('.mp-join-err').hidden = true;
+  }
+
+  // Join a friend's room by typing the 5-letter code instead of opening their link.
+  $('.mp-join').addEventListener('submit', (e) => {
+    e.preventDefault();
+    sfx.unlock();
+    const input = $('.mp-code-in');
+    const code = input.value.trim().toUpperCase();
+    const err = $('.mp-join-err');
+    if (!/^[A-Z2-9]{5}$/.test(code)) {
+      err.textContent = 'A code is 5 letters or numbers, like K7M2P.';
+      err.hidden = false;
+      return;
+    }
+    err.hidden = true;
+    input.value = '';
+    sfx.tap();
+    mpView('wait', 'Joining the game…');
+    mpJoin(code, 'friend');
+  });
 
   // Forget the session without telling the server (callers send 'leave' first when they mean it).
   function mpDrop() {
@@ -907,6 +931,7 @@
       if (!m.state) {
         if (m.kind === 'friend') {
           $('.mp-url').value = `${location.origin}/?room=${MP.code}`;
+          $('.mp-code b').textContent = MP.code;
           $('[data-action="mp-share"]').hidden = !navigator.share;
           mpView('link', 'Send this link to your friend. The game starts as soon as they open it.');
         } else mpView('wait', 'Looking for another player…');
@@ -936,7 +961,7 @@
       if (started && m.code === 'gone') return mpLeft();
       const why = m.code === 'full' ? 'That game already has two players.'
         : m.code === 'dup' ? 'This game was opened in another tab.'
-        : 'That game is no longer open. Ask your friend for a new link.';
+        : 'That game is no longer open. Check the code, or ask your friend for a new link.';
       if (started) { goHome(); }
       mpFail(why);
     }

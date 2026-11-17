@@ -1,0 +1,6 @@
+server
+.git
+scripts
+.vercelignore
+vercel.json
+.assetsignore

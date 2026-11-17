@@ -756,6 +756,20 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .mp-opt:active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 var(--ink); }
 .mp-opt b { font-family: var(--serif); font-weight: 650; font-size: 25px; line-height: 1.05; }
 .mp-opt span { font-size: 14px; opacity: .8; }
+.mp-join { margin: 22px auto 0; max-width: 360px; display: flex; flex-direction: column; gap: 8px; }
+.mp-join-l { font-size: 15px; opacity: .8; }
+.mp-join-row { display: flex; gap: 10px; }
+.mp-code-in {
+  flex: 1; min-width: 0; padding: 10px 12px; border: 2.5px solid var(--ink); border-radius: 11px; text-align: center;
+  background: #fff8e8; color: var(--ink); font: 700 22px var(--sans); letter-spacing: .25em; text-transform: uppercase;
+}
+.mp-join-err { margin: 0; font-size: 14px; color: var(--rust); }
+.mp-code { font-size: 16px; }
+.mp-code b { font: 700 24px var(--sans); letter-spacing: .2em; }
+.portrait .mp-join { max-width: 480px; }
+.portrait .mp-join-l, .portrait .mp-code { font-size: 20px; }
+.portrait .mp-code-in { font-size: 30px; padding: 14px; }
+.mp-join[hidden], .mp-code[hidden], .mp-join-err[hidden] { display: none; }
 .mp-wait { display: flex; flex-direction: column; align-items: center; gap: 18px; }
 .mp-status { margin: 0; max-width: 460px; font-family: var(--serif); font-size: 21px; line-height: 1.3; font-weight: 520; }
 .mp-dots { display: flex; gap: 8px; }

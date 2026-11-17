@@ -200,10 +200,19 @@
             <button class="mp-opt" data-action="mp-friend"><b>Invite a friend</b><span>Get a link and send it on WhatsApp</span></button>
             <button class="mp-opt" data-action="mp-random"><b>Random player</b><span>Play whoever is online right now</span></button>
           </div>
+          <form class="mp-join">
+            <label class="mp-join-l" for="mp-code">Have a code from a friend?</label>
+            <div class="mp-join-row">
+              <input id="mp-code" class="mp-code-in" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCDE" aria-label="Game code" />
+              <button class="btn small" type="submit">Join</button>
+            </div>
+            <p class="mp-join-err" aria-live="polite" hidden></p>
+          </form>
           <div class="mp-wait" hidden>
             <p class="mp-status" aria-live="polite"></p>
             <span class="mp-dots" aria-hidden="true"><i></i><i></i><i></i></span>
             <div class="mp-human"></div>
+            <div class="mp-code" hidden>Or give them this code: <b></b></div>
             <div class="mp-link" hidden>
               <input class="mp-url" readonly aria-label="Invite link" />
               <button class="btn small" data-action="mp-copy">Copy</button>
