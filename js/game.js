@@ -342,6 +342,11 @@
   const FRIEND = { short: 'Friend', N: 'Your friend', n: 'your friend', poss: 'your friend’s', their: 'their', takes: '<b>they</b> take' };
   const STRANGER = { short: 'Opponent', N: 'Your opponent', n: 'your opponent', poss: 'your opponent’s', their: 'their', takes: '<b>they</b> take' };
   let O = AMMACHI;
+  // The other player's chosen name, or the generic friend/opponent wording when they gave none.
+  function person(name, fallback) {
+    if (!name) return fallback;
+    return { short: name, N: name, n: name, poss: name + '’s', their: 'their', takes: `<b>${name}</b> takes` };
+  }
   function setOpp(o) {
     O = o;
     $('.store-label.s1 b').textContent = `${o.short}’s kuzhi`;
@@ -822,10 +827,12 @@
 
   function mpView(view, status) {
     mpEl.hidden = false;
+    $('.mp-name').hidden = view !== 'pick' && view !== 'invite';
+    $('.mp-go').hidden = view !== 'invite';
     $('.mp-pick').hidden = view !== 'pick';
     $('.mp-join').hidden = view !== 'pick';
     $('.mp-code').hidden = view !== 'link';
-    $('.mp-wait').hidden = view === 'pick';
+    $('.mp-wait').hidden = view === 'pick' || view === 'invite';
     $('.mp-link').hidden = view !== 'link';
     $('.mp-dots').hidden = view === 'fail';
     $('.mp-wait [data-action="mp-cancel"]').textContent = view === 'fail' ? 'Close' : 'Cancel';
@@ -836,6 +843,29 @@
     mpView('pick');
     $('.mp-join-err').hidden = true;
   }
+
+  // Your display name for multiplayer. Same rules as the server: plain text, 16 characters.
+  const cleanName = (s) => Array.from(String(s || '').replace(/[\u0000-\u001f\u007f<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim())
+    .slice(0, 16).join('').trim();
+  const nameIn = $('.mp-name-in');
+  try { nameIn.value = localStorage.getItem('pz-name') || ''; } catch (e) { /* private mode */ }
+  function myName() {
+    const n = cleanName(nameIn.value);
+    try { n ? localStorage.setItem('pz-name', n) : localStorage.removeItem('pz-name'); } catch (e) { /* private mode */ }
+    return n;
+  }
+  nameIn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !$('.mp-go').hidden) { e.preventDefault(); mpGo(); }
+  });
+
+  // An invite link asks for your name first, then joins.
+  function mpGo() {
+    sfx.unlock();
+    sfx.tap();
+    mpView('wait', 'Joining the game…');
+    mpJoin(MP_INVITE, 'friend');
+  }
+  let MP_INVITE = '';
 
   // Join a friend's room by typing the 5-letter code instead of opening their link.
   $('.mp-join').addEventListener('submit', (e) => {
@@ -910,11 +940,11 @@
 
   function mpJoin(code, kind, tries = 0) {
     mpDrop();
-    const me = (MP = { code, kind, tries, seat: 0, n: 0, game: 0, queue: [], started: false, peer: false, pumping: false, over: false });
+    const me = (MP = { code, kind, tries, seat: 0, n: 0, game: 0, queue: [], started: false, peer: false, pumping: false, over: false, opp: '' });
     me.conn = PZ.net.open(code, {
       msg: (m) => MP === me && mpMsg(m),
       down: () => MP === me && me.started && G.mode === 'play' && narrate('Connection lost. <b>Reconnecting…</b>', 'Offline'),
-    });
+    }, myName());
     // a lone player in a random room keeps the room on offer until someone turns up
     me.offerT = setInterval(() => { if (!me.started && me.kind === 'random') me.conn.send({ t: 'sync' }); }, 20000);
     me.clockT = setInterval(mpClock, 250);
@@ -928,6 +958,7 @@
       MP.seat = m.seat;
       MP.kind = m.kind;
       MP.peer = m.peer;
+      if (m.names) mpOppName(m.names[1 - m.seat]);
       if (!m.state) {
         if (m.kind === 'friend') {
           $('.mp-url').value = `${location.origin}/?room=${MP.code}`;
@@ -949,6 +980,7 @@
       mpPump();
     } else if (m.t === 'peer') {
       MP.peer = m.on;
+      if (m.on && m.name !== undefined) mpOppName(m.name);
       if (!m.on && MP.started && !MP.over) say(PZ.paatiLine('mpPeerOff'), 'think');
       mpTurnNote();
     } else if (m.t === 'rematch') mpRematchNote();
@@ -965,6 +997,13 @@
       if (started) { goHome(); }
       mpFail(why);
     }
+  }
+
+  const mpOpp = () => person(MP.opp, MP.kind === 'random' ? STRANGER : FRIEND);
+
+  function mpOppName(name) {
+    MP.opp = cleanName(name);
+    if (MP.started && G.mode === 'play') setOpp(mpOpp());
   }
 
   async function mpBegin(m) {
@@ -986,7 +1025,7 @@
     clearMarks();
     setPlayable(null);
     showScreen('screen-game');
-    setOpp(me.kind === 'random' ? STRANGER : FRIEND);
+    setOpp(mpOpp());
     $('.np-mood').textContent = me.kind === 'random' ? 'Umpire · random match' : 'Umpire · friend match';
     G.state = mpState(m.state);
     if (m.n === 0) {
@@ -1353,6 +1392,7 @@
     else if (a === 'mp-friend') { sfx.tap(); mpFriend(); }
     else if (a === 'mp-random') { sfx.tap(); mpRandom(); }
     else if (a === 'mp-cancel') mpCancel();
+    else if (a === 'mp-go') mpGo();
     else if (a === 'mp-copy') mpCopy();
     else if (a === 'mp-share') mpShare();
     else if (a === 'learn') { sfx.tap(); startTutorial(); }
@@ -1403,7 +1443,8 @@
   // invite links: /?room=ABCDE
   const invite = new URLSearchParams(location.search).get('room');
   if (invite && PZ.net.ready && /^[A-Za-z2-9]{5}$/.test(invite)) {
-    mpView('wait', 'Joining the game…');
-    mpJoin(invite.toUpperCase(), 'friend');
+    MP_INVITE = invite.toUpperCase();
+    mpView('invite');
+    nameIn.focus();
   }
 })();

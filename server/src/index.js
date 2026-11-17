@@ -2,7 +2,7 @@
  *
  *   POST /room            → { code }   new friend room
  *   POST /match           → { code }   a room with someone waiting, or a fresh one to wait in
- *   GET  /room/:code/ws?pid=…          WebSocket for that room
+ *   GET  /room/:code/ws?pid=…&name=…   WebSocket for that room (name is optional, shown to the other player)
  *
  * The room is the referee. It runs the same rules engine as the browser (js/engine.js), so a
  * move on the wire is just a pit index. Seats are canonical: seat 0 owns pits 0..6, seat 1 owns
@@ -28,6 +28,11 @@ const FORFEIT_MS = 45 * 1000; // random match: how long a dropped player has to 
 const CLOSED_TTL = 60 * 1000;
 const TURN_MS = 60 * 1000; // random match: time to make a move
 const MSG_BURST = 40; // messages one socket may send per 10 s
+const NAME_MAX = 16;
+
+// A player's display name: plain text only, so neither side ever has to escape it.
+const cleanName = (s) => Array.from(String(s || '').replace(/[\u0000-\u001f\u007f<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim())
+  .slice(0, NAME_MAX).join('').trim();
 
 // Extra time on top of TURN_MS so the clock only bites after the previous move has finished
 // animating on the mover's screen (about a quarter second per seed dropped).
@@ -154,7 +159,7 @@ export class Room extends DurableObject {
     const g = this.g;
     return {
       t, seat, kind: g.kind, code: g.code, game: g.game, n: g.n, state: g.state,
-      peer: this.socks(1 - seat).length > 0, rematch: g.rematch,
+      peer: this.socks(1 - seat).length > 0, rematch: g.rematch, names: g.names || ['', ''],
       left: g.due ? Math.max(0, g.due - Date.now()) : 0, // ms the player to move has left; 0 = untimed
     };
   }
@@ -163,7 +168,7 @@ export class Room extends DurableObject {
   async create(kind, code) {
     if (this.g) return false;
     this.g = {
-      code, kind, seats: [null, null], state: null, n: 0, game: 0, first: 0,
+      code, kind, seats: [null, null], names: ['', ''], state: null, n: 0, game: 0, first: 0,
       rematch: [false, false], away: [0, 0], due: 0, closed: false, idleAt: Date.now(),
     };
     this.save();
@@ -226,7 +231,8 @@ export class Room extends DurableObject {
   }
 
   async fetch(req) {
-    const pid = new URL(req.url).searchParams.get('pid');
+    const params = new URL(req.url).searchParams;
+    const pid = params.get('pid');
     const [client, server] = Object.values(new WebSocketPair());
     const g = this.g;
 
@@ -256,6 +262,8 @@ export class Room extends DurableObject {
     }
 
     g.seats[seat] = pid;
+    g.names = g.names || ['', ''];
+    g.names[seat] = cleanName(params.get('name'));
     g.away[seat] = 0;
     let started = false;
     if (!g.state && g.seats[0] !== null && g.seats[1] !== null) {
@@ -265,7 +273,7 @@ export class Room extends DurableObject {
     this.save();
 
     this.send(server, this.snap(seat));
-    this.toSeat(1 - seat, started ? this.snap(1 - seat, 'start') : { t: 'peer', on: true });
+    this.toSeat(1 - seat, started ? this.snap(1 - seat, 'start') : { t: 'peer', on: true, name: g.names[seat] });
     await this.arm();
     if (!started) await this.offer(server);
     return new Response(null, { status: 101, webSocket: client });

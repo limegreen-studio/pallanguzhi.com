@@ -196,6 +196,11 @@
           <button class="sheet-close" data-action="mp-cancel" aria-label="Close">×</button>
           <div class="rules-kicker">Multiplayer</div>
           <h2 class="mp-title">Play with people</h2>
+          <div class="mp-name">
+            <label class="mp-join-l" for="mp-name">Your name <span>(the other player sees it)</span></label>
+            <input id="mp-name" class="mp-name-in" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="e.g. Meena" />
+            <button class="btn mp-go" data-action="mp-go" hidden>Join the game</button>
+          </div>
           <div class="mp-pick">
             <button class="mp-opt" data-action="mp-friend"><b>Invite a friend</b><span>Get a link and send it on WhatsApp</span></button>
             <button class="mp-opt" data-action="mp-random"><b>Random player</b><span>Play whoever is online right now</span></button>

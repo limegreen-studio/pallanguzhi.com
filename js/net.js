@@ -58,12 +58,13 @@
 
   // Opens a room socket that reconnects by itself until close() or a fatal server error.
   // on.msg(m) for every server message, on.down() when the line drops, on.up() when it is back.
-  function open(code, on) {
+  // name is what the other player sees for us ('' = none).
+  function open(code, on, name) {
     let ws = null, dead = false, tries = 0, pingT = 0, retryT = 0;
     const conn = { up: false, send, close };
 
     function connect() {
-      ws = new WebSocket(`${base.replace(/^http/, 'ws')}/room/${code}/ws?pid=${playerId()}`);
+      ws = new WebSocket(`${base.replace(/^http/, 'ws')}/room/${code}/ws?pid=${playerId()}${name ? '&name=' + encodeURIComponent(name) : ''}`);
       ws.onopen = () => {
         tries = 0;
         conn.up = true;

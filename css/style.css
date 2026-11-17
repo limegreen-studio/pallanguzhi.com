@@ -769,7 +769,16 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .portrait .mp-join { max-width: 480px; }
 .portrait .mp-join-l, .portrait .mp-code { font-size: 20px; }
 .portrait .mp-code-in { font-size: 30px; padding: 14px; }
-.mp-join[hidden], .mp-code[hidden], .mp-join-err[hidden] { display: none; }
+.mp-join[hidden], .mp-code[hidden], .mp-join-err[hidden], .mp-name[hidden], .mp-go[hidden] { display: none; }
+.mp-name { margin: 0 auto 20px; max-width: 360px; display: flex; flex-direction: column; gap: 8px; }
+.mp-name .mp-join-l span { opacity: .75; }
+.mp-name-in {
+  padding: 10px 12px; border: 2.5px solid var(--ink); border-radius: 11px; text-align: center;
+  background: #fff8e8; color: var(--ink); font: 600 20px var(--sans);
+}
+.mp-go { margin-top: 8px; align-self: center; }
+.portrait .mp-name { max-width: 480px; }
+.portrait .mp-name-in { font-size: 26px; padding: 14px; }
 .mp-wait { display: flex; flex-direction: column; align-items: center; gap: 18px; }
 .mp-status { margin: 0; max-width: 460px; font-family: var(--serif); font-size: 21px; line-height: 1.3; font-weight: 520; }
 .mp-dots { display: flex; gap: 8px; }
