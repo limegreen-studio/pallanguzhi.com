@@ -94,6 +94,42 @@
     tie: [
       { t: 'Samam! Rendu perum nalla aadinom. Coffee kudikkalaam vaa.', e: 'A tie! We both played well. Coffee time.' },
     ],
+
+    /* Multiplayer: Ammachi is the umpire, not the opponent. */
+    mpStart: [
+      { t: 'Rendu perum ready-aa? Naan dhaan umpire. Cheating panna koodaadhu!', e: 'Both ready? I’m the umpire. No cheating!' },
+      { t: 'Naan summa paakkaren. Nalla aadunga!', e: 'I’m just watching. Play well!' },
+    ],
+    mpYouBig: [
+      { t: 'Sabaash kanna! Nalla edutha!', e: 'Bravo, dear! Nicely taken!' },
+    ],
+    mpOppBig: [
+      { t: 'Aiyo! Un seeds ellam poyiduchu!', e: 'Oh no! There go your seeds!' },
+    ],
+    mpWrongSide: [
+      { t: 'Adhu un kuzhi illa kanna. Un pakkam aadu.', e: 'That’s not your pit, dear. Play your side.' },
+    ],
+    mpPeerOff: [
+      { t: 'Line cut aayiduchu pola. Konjam wait pannu.', e: 'Looks like the line dropped. Wait a little.' },
+    ],
+    mpHurry: [
+      { t: 'Seekiram kanna! Time aagudhu!', e: 'Quick, dear! Time is running out!' },
+    ],
+    mpTimeUp: [
+      { t: 'Time mudinjiduchu kanna!', e: 'Time is up, dear!' },
+    ],
+    mpLeft: [
+      { t: 'Avanga poyittaanga kanna. Paravaala.', e: 'They’ve left, dear. Never mind.' },
+    ],
+    mpWin: [
+      { t: 'Sabaash kanna! Nee dhaan jeyicha!', e: 'Bravo, dear! You won!' },
+    ],
+    mpLose: [
+      { t: 'Paravaala kanna. Innoru round aadu!', e: 'It’s okay, dear. Play another round!' },
+    ],
+    mpTie: [
+      { t: 'Samam! Rendu perum nalla aadineenga.', e: 'A tie! You both played well.' },
+    ],
   };
 
   const last = {};

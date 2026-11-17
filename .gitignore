@@ -2,3 +2,5 @@
 node_modules/
 scripts/.og.png
 __pycache__/
+.wrangler/
+.dev.vars

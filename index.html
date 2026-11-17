@@ -190,6 +190,30 @@
         </div>
       </div>
 
+      <!-- ================= MULTIPLAYER ================= -->
+      <div class="overlay" id="mp" hidden>
+        <div class="sheet mp-sheet">
+          <button class="sheet-close" data-action="mp-cancel" aria-label="Close">×</button>
+          <div class="rules-kicker">Multiplayer</div>
+          <h2 class="mp-title">Play with people</h2>
+          <div class="mp-pick">
+            <button class="mp-opt" data-action="mp-friend"><b>Invite a friend</b><span>Get a link and send it on WhatsApp</span></button>
+            <button class="mp-opt" data-action="mp-random"><b>Random player</b><span>Play whoever is online right now</span></button>
+          </div>
+          <div class="mp-wait" hidden>
+            <p class="mp-status" aria-live="polite"></p>
+            <span class="mp-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <div class="mp-human"></div>
+            <div class="mp-link" hidden>
+              <input class="mp-url" readonly aria-label="Invite link" />
+              <button class="btn small" data-action="mp-copy">Copy</button>
+              <button class="btn small ghost" data-action="mp-share">Share</button>
+            </div>
+            <button class="btn ghost" data-action="mp-cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ================= END ================= -->
       <div class="overlay" id="end" hidden>
         <div class="petals"></div>
@@ -217,6 +241,7 @@
   <script src="js/art.js"></script>
   <script src="js/paati.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/net.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

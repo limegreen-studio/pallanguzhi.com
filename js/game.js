@@ -315,7 +315,7 @@
   const nChip = $('.narrate-chip'), nText = $('.narrate-text'), nHand = $('.narrate-hand');
   function narrate(html, who) {
     if (who !== undefined) {
-      nChip.textContent = who === 0 ? 'Your move' : who === 1 ? 'Ammachi’s move' : who;
+      nChip.textContent = who === 0 ? 'Your move' : who === 1 ? `${O.short}’s move` : who;
       nChip.className = 'narrate-chip' + (who === 1 ? ' paati' : typeof who === 'string' ? ' learn' : '');
     }
     nText.innerHTML = html;
@@ -334,7 +334,21 @@
     idleT: 0,
     tut: null,
     allowPit: null,
+    gen: 0, // bumped whenever the board is replaced, so a move still animating knows to stand down
   };
+
+  // Who sits across the board. Ammachi by default; a person in multiplayer.
+  const AMMACHI = { short: 'Ammachi', N: 'Ammachi', n: 'Ammachi', poss: 'Ammachi’s', their: 'her', takes: '<b>she</b> takes' };
+  const FRIEND = { short: 'Friend', N: 'Your friend', n: 'your friend', poss: 'your friend’s', their: 'their', takes: '<b>they</b> take' };
+  const STRANGER = { short: 'Opponent', N: 'Your opponent', n: 'your opponent', poss: 'your opponent’s', their: 'their', takes: '<b>they</b> take' };
+  let O = AMMACHI;
+  function setOpp(o) {
+    O = o;
+    $('.store-label.s1 b').textContent = `${o.short}’s kuzhi`;
+    $('.row-label.top').textContent = `${o.short}’s row ← sowing`;
+    $('.end-score div:last-child .es-l').textContent = o.short;
+  }
+  let MP = null; // the live multiplayer session, see the multiplayer section
 
   function syncView(st) {
     G.view.pits = st.pits.slice();
@@ -364,7 +378,7 @@
           if (ev.first) {
             narrate(ev.by === 0
               ? `You scoop <b>${seeds(ev.n)}</b> and drop them one by one, anticlockwise ${orient('→', '↓')}`
-              : `Ammachi scoops <b>${seeds(ev.n)}</b> from her row…`, ev.by);
+              : `${O.N} scoops <b>${seeds(ev.n)}</b> from ${O.their} row…`, ev.by);
             const h = handOver(ev.pit);
             handEl.style.setProperty('--hand-ms', '0ms');
             handEl.style.translate = `${h.x}px ${h.y}px`;
@@ -398,7 +412,7 @@
         case 'pasu': {
           sum.pasu[ev.owner] += 4;
           mark(ev.pit, 'mark-pasu');
-          narrate(`<b>Pasu!</b> That kuzhi hit 4 — it’s on ${ev.owner === 0 ? 'your row, so the 4 seeds are <b>yours</b>' : 'Ammachi’s row, so <b>she</b> takes them'}.`);
+          narrate(`<b>Pasu!</b> That kuzhi hit 4 — it’s on ${ev.owner === 0 ? 'your row, so the 4 seeds are <b>yours</b>' : `${O.poss} row, so ${O.takes} them`}.`);
           sfx.jackpot();
           pasuBurst(ev.pit, ev.owner);
           await sleep(480 / SP());
@@ -423,7 +437,7 @@
           mark(ev.pit, 'mark-cap');
           narrate(ev.by === 0
             ? `…so you <b>capture ${ev.n === 1 ? 'the 1 seed' : 'all ' + ev.n + ' seeds'}</b> in the kuzhi after it!`
-            : `…so Ammachi <b>grabs ${ev.n === 1 ? 'the 1 seed' : 'all ' + ev.n + ' seeds'}</b> in the kuzhi after it.`);
+            : `…so ${O.n} <b>grabs ${ev.n === 1 ? 'the 1 seed' : 'all ' + ev.n + ' seeds'}</b> in the kuzhi after it.`);
           await sleep(260 / SP());
           const froms = seedsOf(ev.pit);
           v.pits[ev.pit] = 0;
@@ -481,7 +495,7 @@
     else if (ev.t === 'pasu') { v.pits[ev.pit] = 0; v.store[ev.owner] += 4; sum.pasu[ev.owner] += 4; }
     else if (ev.t === 'capture') {
       v.pits[ev.pit] = 0; v.store[ev.by] += ev.n; sum.cap[ev.by] += ev.n;
-      narrate(ev.by === 0 ? `Skipped ahead — you <b>captured ${seeds(ev.n)}</b> at the end.` : `Skipped ahead — Ammachi <b>grabbed ${seeds(ev.n)}</b> at the end.`);
+      narrate(ev.by === 0 ? `Skipped ahead — you <b>captured ${seeds(ev.n)}</b> at the end.` : `Skipped ahead — ${O.n} <b>grabbed ${seeds(ev.n)}</b> at the end.`);
     } else if (ev.t === 'nothing') { sum.nothing = true; narrate('Skipped ahead — the move ended with <b>nothing to take</b>.'); }
     else if (ev.t === 'sweep') { v.pits[ev.pit] = 0; v.store[ev.owner] += ev.n; sum.over = true; }
     else if (ev.t === 'over') sum.over = true;
@@ -496,7 +510,7 @@
     el.style.top = c.y + 'px';
     let rays = '';
     for (let k = 0; k < 14; k++) rays += `<i style="--a:${k * 25.7}deg;--d:${(k % 3) * 40}ms"></i>`;
-    el.innerHTML = `<div class="pb-rays">${rays}</div><div class="pb-badge"><b>Pasu!</b><span>+4 ${who === 0 ? 'for you' : 'for Ammachi'}</span></div>`;
+    el.innerHTML = `<div class="pb-rays">${rays}</div><div class="pb-badge"><b>Pasu!</b><span>+4 ${who === 0 ? 'for you' : 'for ' + O.n}</span></div>`;
     flyLayer.appendChild(el);
     setTimeout(() => el.remove(), 1700);
   }
@@ -557,7 +571,7 @@
   function clearPreview() { $$('.pv', pitsWrap).forEach((d) => d.remove()); }
 
   addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeRules(); return; }
+    if (e.key === 'Escape') { closeRules(); if (!$('#mp').hidden) mpCancel(); return; }
     if (G.mode === 'menu') return;
     const k = parseInt(e.key, 10);
     if (k >= 1 && k <= 7) onPit(k - 1);
@@ -574,12 +588,17 @@
       return;
     }
     if (G.mode !== 'play' || !G.awaitUser) return;
-    if (owner(i) !== 0) { quip('wrongSide', 'smug'); return; }
+    if (owner(i) !== 0) { quip(MP ? 'mpWrongSide' : 'wrongSide', 'smug'); return; }
     if (G.view.pits[i] === 0) { quip('emptyTap', 'smug'); return; }
     playerMove(i);
   }
 
   async function playerMove(i) {
+    if (MP) {
+      if (!MP.conn.up) { narrate('Connection lost. <b>Reconnecting…</b>', 'Offline'); return; }
+      MP.conn.send({ t: 'move', pit: mpPit(i), n: MP.n });
+      MP.n++;
+    }
     G.awaitUser = false;
     clearTimeout(G.idleT);
     clearPreview();
@@ -591,9 +610,11 @@
 
   async function runMove(i) {
     const mover = G.state.turn;
+    const gen = G.gen;
     const r = PZ.applyMove(G.state, i, true);
     G.pendingStuck = r.state.over ? r.state.turn : null;
     const sum = await animate(r.events, mover);
+    if (gen !== G.gen) return;
     G.state = r.state;
     syncView(G.state);
     renderAll();
@@ -606,6 +627,13 @@
   async function react(sum, mover) {
     const you = mover === 0;
     const mine = sum.cap[mover];
+    if (MP) {
+      // Ammachi is only the umpire here, so she cheers for you instead of gloating
+      // not awaited: the other player's next move must not wait for her to finish talking
+      if (mine >= 6) say(PZ.paatiLine(you ? 'mpYouBig' : 'mpOppBig'), you ? 'happy' : 'shock');
+      else if (you && sum.nothing && Math.random() < 0.3) say(PZ.paatiLine('youNothing'), 'smug');
+      return;
+    }
     if (sum.pasu[1] && !you) return say(PZ.paatiLine('paatiPasu'), 'happy');
     if (sum.pasu[0] && you && mine < 6) return say(PZ.paatiLine('youPasu'), 'smug');
     if (sum.pasu[1] && you) return say(PZ.paatiLine('paatiPasu'), 'happy');
@@ -634,10 +662,12 @@
       narrate(`Your turn! Tap a glowing kuzhi on <b>your row</b> (${orient('bottom', 'left side')}) to scoop its seeds.`, 0);
       clearTimeout(G.idleT);
       G.idleT = setTimeout(() => G.awaitUser && say(PZ.paatiLine('idle'), 'smug'), 16000);
-    } else paatiTurn();
+    } else if (MP) mpWait();
+    else paatiTurn();
   }
 
   async function paatiTurn() {
+    const gen = G.gen;
     rowGlow(1);
     narrate('Ammachi is thinking about her move…', 1);
     if (Math.random() < 0.6) say(PZ.paatiLine('thinking'), 'think', { moodMs: 0 });
@@ -648,12 +678,13 @@
     const m = PZ.chooseMove(G.state, settings.level);
     const wait = Math.max(0, (settings.level === 'hard' ? 1300 : 1000) / Math.sqrt(SP()) - (performance.now() - t0));
     await sleep(wait);
-    if (G.mode !== 'play') return;
+    if (G.mode !== 'play' || gen !== G.gen) return;
     thinking(false);
     setMood('normal');
     flash(m);
     pitEls[m].el.classList.add('target');
     await sleep(420 / SP());
+    if (gen !== G.gen) return;
     await runMove(m);
   }
 
@@ -679,6 +710,9 @@
   }
 
   async function startGame() {
+    mpDrop();
+    setOpp(AMMACHI);
+    const gen = ++G.gen;
     closeEnd();
     G.mode = 'play';
     G.tut = null;
@@ -694,7 +728,7 @@
     say(PZ.paatiLine(first === 1 ? 'helloPaatiFirst' : 'hello'), 'happy');
     await deal(G.state);
     await sleep(900);
-    if (G.mode === 'play') nextTurn();
+    if (G.mode === 'play' && gen === G.gen) nextTurn();
   }
 
   function endGame() {
@@ -703,20 +737,29 @@
     rowGlow(-1);
     const [y, p] = G.state.store;
     const res = y > p ? 'win' : y < p ? 'lose' : 'tie';
-    const line = PZ.paatiLine(res === 'win' ? 'youWin' : res === 'lose' ? 'paatiWin' : 'tie');
+    const line = MP
+      ? PZ.paatiLine(res === 'win' ? 'mpWin' : res === 'lose' ? 'mpLose' : 'mpTie')
+      : PZ.paatiLine(res === 'win' ? 'youWin' : res === 'lose' ? 'paatiWin' : 'tie');
     const mood = res === 'win' ? 'happy' : res === 'lose' ? 'happy' : 'smug';
     say(line, mood, { moodMs: 0 });
-    narrate(`Round over — you <b>${y}</b>, Ammachi <b>${p}</b>.`, 'Round over');
+    narrate(`Round over — you <b>${y}</b>, ${O.n} <b>${p}</b>.`, 'Round over');
     sfx.fanfare(res !== 'lose');
 
     const end = $('#end');
     $('.end-face .paati').dataset.mood = res === 'win' ? 'happy' : res === 'lose' ? 'happy' : 'smug';
-    $('.end-kicker').textContent = res === 'win' ? 'Ammachi is so proud' : res === 'lose' ? 'Ammachi wins, obviously' : 'Equal-equal';
-    $('.end-title').textContent = res === 'win' ? 'You beat Ammachi!' : res === 'lose' ? 'Ammachi jeyichitaanga!' : 'Samam! A tie.';
+    if (MP) {
+      $('.end-kicker').textContent = res === 'win' ? 'Ammachi is so proud' : res === 'lose' ? `${O.short} wins this round` : 'Equal-equal';
+      $('.end-title').textContent = res === 'win' ? 'You won!' : res === 'lose' ? 'So close!' : 'Samam! A tie.';
+      mpEndButtons();
+    } else {
+      $('.end-kicker').textContent = res === 'win' ? 'Ammachi is so proud' : res === 'lose' ? 'Ammachi wins, obviously' : 'Equal-equal';
+      $('.end-title').textContent = res === 'win' ? 'You beat Ammachi!' : res === 'lose' ? 'Ammachi jeyichitaanga!' : 'Samam! A tie.';
+    }
     $('[data-end="0"]').textContent = y;
     $('[data-end="1"]').textContent = p;
     $('.end-line').textContent = line.t;
     $('.end-line-e').textContent = line.e;
+    if (MP && MP.oppRematch) mpRematchNote();
     const petals = $('.petals');
     petals.innerHTML = '';
     if (res === 'win') {
@@ -733,9 +776,19 @@
     }
     setTimeout(() => { if (G.mode === 'play') end.hidden = false; }, 1600);
   }
-  function closeEnd() { $('#end').hidden = true; }
+  function closeEnd() {
+    $('#end').hidden = true;
+    const again = $('[data-action="again"]');
+    again.hidden = false;
+    again.disabled = false;
+    again.textContent = 'Innoru round!';
+  }
 
   function goHome() {
+    if (MP) MP.conn.send({ t: 'leave' });
+    mpDrop();
+    setOpp(AMMACHI);
+    G.gen++;
     G.mode = 'menu';
     G.awaitUser = false;
     G.skip = true;
@@ -744,7 +797,292 @@
     pointer(null);
     sayId++;
     showScreen('screen-title');
-    if (location.hash) history.replaceState(null, '', location.pathname);
+    if (location.hash || location.search) history.replaceState(null, '', location.pathname);
+  }
+
+  /* ---------------- multiplayer ---------------- */
+  // The server keeps seats canonical (seat 0 owns pits 0..6). Everything above assumes "you" are
+  // player 0 on the bottom row, so seat 1 simply sees the board turned half a circle: pit p
+  // becomes (p + 7) % 14 and the two stores swap. The rules are symmetric under that turn.
+  const mpPit = (p) => (MP.seat ? (p + 7) % 14 : p);
+  const mpState = (s) => (MP.seat
+    ? { pits: s.pits.slice(7).concat(s.pits.slice(0, 7)), store: [s.store[1], s.store[0]], turn: 1 - s.turn, over: s.over }
+    : PZ.clone(s));
+
+  const mpEl = $('#mp');
+  const mpCard = $('.t-card.soon');
+  if (PZ.net.ready) {
+    mpCard.disabled = false;
+    mpCard.removeAttribute('aria-disabled');
+    mpCard.classList.remove('soon');
+    mpCard.dataset.action = 'mp';
+    $('.t-card-kicker', mpCard).textContent = 'With people';
+    $('.stamp', mpCard).outerHTML = '<span class="t-card-note">A friend, or a random player</span>';
+  }
+
+  function mpView(view, status) {
+    mpEl.hidden = false;
+    $('.mp-pick').hidden = view !== 'pick';
+    $('.mp-wait').hidden = view === 'pick';
+    $('.mp-link').hidden = view !== 'link';
+    $('.mp-dots').hidden = view === 'fail';
+    $('.mp-wait [data-action="mp-cancel"]').textContent = view === 'fail' ? 'Close' : 'Cancel';
+    if (status) $('.mp-status').innerHTML = status;
+  }
+
+  function mpOpen() { mpView('pick'); }
+
+  // Forget the session without telling the server (callers send 'leave' first when they mean it).
+  function mpDrop() {
+    if (!MP) return;
+    clearInterval(MP.offerT);
+    clearInterval(MP.clockT);
+    nHand.classList.remove('hurry');
+    MP.conn.close();
+    MP = null;
+  }
+
+  function mpCancel() {
+    if (MP && !MP.started) { MP.conn.send({ t: 'leave' }); mpDrop(); }
+    mpEl.hidden = true;
+    if (G.mode === 'menu' && location.search) history.replaceState(null, '', location.pathname);
+  }
+
+  async function mpFriend() {
+    mpView('wait', 'Making a room…');
+    try {
+      const { code } = await PZ.net.create();
+      mpJoin(code, 'friend');
+    } catch (e) { mpFail(mpWhy(e)); }
+  }
+
+  const mpWhy = (e) => (e && e.status === 429 ? 'Too many games started from your network just now. Wait a minute and try again.'
+    : e && e.status === 403 ? 'Could not confirm you are a person. Reload the page and try again.'
+    : undefined);
+
+  async function mpRandom(tries = 0) {
+    mpView('wait', 'Looking for another player…');
+    try {
+      const { code } = await PZ.net.match();
+      mpJoin(code, 'random', tries);
+    } catch (e) { mpFail(mpWhy(e)); }
+  }
+
+  function mpFail(msg) {
+    mpDrop();
+    mpView('fail', msg || 'Could not reach the game server. Check your connection and try again.');
+  }
+
+  function mpCopy() {
+    const input = $('.mp-url');
+    const done = () => { $('[data-action="mp-copy"]').textContent = 'Copied ✓'; };
+    if (navigator.clipboard) navigator.clipboard.writeText(input.value).then(done, () => input.select());
+    else { input.select(); document.execCommand('copy'); done(); }
+  }
+
+  function mpShare() {
+    navigator.share({ title: 'Pallanguzhi', text: 'Play Pallanguzhi with me!', url: $('.mp-url').value }).catch(() => {});
+  }
+
+  function mpJoin(code, kind, tries = 0) {
+    mpDrop();
+    const me = (MP = { code, kind, tries, seat: 0, n: 0, game: 0, queue: [], started: false, peer: false, pumping: false, over: false });
+    me.conn = PZ.net.open(code, {
+      msg: (m) => MP === me && mpMsg(m),
+      down: () => MP === me && me.started && G.mode === 'play' && narrate('Connection lost. <b>Reconnecting…</b>', 'Offline'),
+    });
+    // a lone player in a random room keeps the room on offer until someone turns up
+    me.offerT = setInterval(() => { if (!me.started && me.kind === 'random') me.conn.send({ t: 'sync' }); }, 20000);
+    me.clockT = setInterval(mpClock, 250);
+    if (location.search !== '?room=' + code) history.replaceState(null, '', '/?room=' + code);
+  }
+
+  function mpMsg(m) {
+    // random matches are timed: `left` is how long the player to move still has
+    if (m.left !== undefined) { MP.due = m.left ? performance.now() + m.left : 0; MP.nagged = false; }
+    if (m.t === 'hello' || m.t === 'start') {
+      MP.seat = m.seat;
+      MP.kind = m.kind;
+      MP.peer = m.peer;
+      if (!m.state) {
+        if (m.kind === 'friend') {
+          $('.mp-url').value = `${location.origin}/?room=${MP.code}`;
+          $('[data-action="mp-share"]').hidden = !navigator.share;
+          mpView('link', 'Send this link to your friend. The game starts as soon as they open it.');
+        } else mpView('wait', 'Looking for another player…');
+        return;
+      }
+      if (!MP.started || m.game !== MP.game) mpBegin(m);
+      else if (m.n !== MP.n + MP.queue.length) mpResync(m);
+      else mpTurnNote();
+      if (m.rematch && m.rematch[1 - m.seat] && m.state.over) mpRematchNote();
+    } else if (m.t === 'move') {
+      const known = MP.n + MP.queue.length;
+      if (m.n <= known) return; // our own move coming back, or a repeat
+      if (m.n !== known + 1 || m.by === MP.seat) return MP.conn.send({ t: 'sync' });
+      MP.queue.push(m.pit);
+      mpPump();
+    } else if (m.t === 'peer') {
+      MP.peer = m.on;
+      if (!m.on && MP.started && !MP.over) say(PZ.paatiLine('mpPeerOff'), 'think');
+      mpTurnNote();
+    } else if (m.t === 'rematch') mpRematchNote();
+    else if (m.t === 'left') mpLeft(m.why === 'timeout' ? 'slow-them' : 'left');
+    else if (m.t === 'timeout') mpLeft('slow-you');
+    else if (m.t === 'goto') mpJoin(m.code, 'random', MP.tries);
+    else if (m.t === 'err') {
+      const { started, kind, tries } = MP;
+      if (m.code === 'gone' && kind === 'random' && !started && tries < 3) return mpRandom(tries + 1);
+      if (started && m.code === 'gone') return mpLeft();
+      const why = m.code === 'full' ? 'That game already has two players.'
+        : m.code === 'dup' ? 'This game was opened in another tab.'
+        : 'That game is no longer open. Ask your friend for a new link.';
+      if (started) { goHome(); }
+      mpFail(why);
+    }
+  }
+
+  async function mpBegin(m) {
+    const me = MP;
+    const gen = ++G.gen;
+    G.skip = true;
+    me.started = true;
+    me.over = false;
+    me.oppRematch = false;
+    me.game = m.game;
+    me.n = m.n;
+    me.queue = [];
+    mpEl.hidden = true;
+    closeEnd();
+    G.mode = 'play';
+    G.tut = null;
+    G.awaitUser = false;
+    pointer(null);
+    clearMarks();
+    setPlayable(null);
+    showScreen('screen-game');
+    setOpp(me.kind === 'random' ? STRANGER : FRIEND);
+    $('.np-mood').textContent = me.kind === 'random' ? 'Umpire · random match' : 'Umpire · friend match';
+    G.state = mpState(m.state);
+    if (m.n === 0) {
+      narrate('Dealing 5 seeds into every kuzhi…', 'New game');
+      say(PZ.paatiLine('mpStart'), 'happy');
+      await deal(G.state);
+      await sleep(900);
+    } else {
+      // joined part-way (reload): show the board as it stands
+      syncView(G.state);
+      renderAll();
+    }
+    if (MP === me && gen === G.gen && G.mode === 'play') nextTurn();
+  }
+
+  // Our board disagrees with the server's (a move was lost while offline). The server wins.
+  async function mpResync(m) {
+    const me = MP;
+    const gen = ++G.gen;
+    me.n = m.n;
+    me.queue = [];
+    G.skip = true;
+    G.awaitUser = false;
+    while (G.animating) await sleep(40);
+    if (MP !== me || gen !== G.gen || G.mode !== 'play') return;
+    G.state = mpState(m.state);
+    syncView(G.state);
+    renderAll();
+    clearMarks();
+    nextTurn();
+  }
+
+  function mpWait() {
+    rowGlow(1);
+    mpTurnNote();
+    mpPump();
+  }
+
+  // Says whose turn it is, including when the other player has dropped off.
+  function mpTurnNote() {
+    if (!MP || !MP.started || MP.over || G.mode !== 'play' || G.animating || !G.state || G.state.over) return;
+    if (G.state.turn === 0) {
+      if (G.awaitUser) narrate(`Your turn! Tap a glowing kuzhi on <b>your row</b> (${orient('bottom', 'left side')}) to scoop its seeds.`, 0);
+    } else if (MP.peer) narrate(`Waiting for ${O.n} to play…`, 1);
+    else narrate(`${O.N} got disconnected. Waiting for them to come back…`, 1);
+  }
+
+  // Plays the other player's next move once the board is free.
+  async function mpPump() {
+    const me = MP;
+    if (!me || me.pumping || G.animating || G.mode !== 'play' || !G.state || G.state.over || G.state.turn !== 1 || !me.queue.length) return;
+    me.pumping = true;
+    const gen = G.gen;
+    const pit = mpPit(me.queue.shift());
+    me.n++;
+    flash(pit);
+    pitEls[pit].el.classList.add('target');
+    await sleep(420 / SP());
+    me.pumping = false;
+    if (MP !== me || gen !== G.gen) return;
+    await runMove(pit);
+  }
+
+  // The move clock, shown beside the narration while someone is on the clock.
+  function mpClock() {
+    const on = MP && MP.started && !MP.over && MP.due && G.mode === 'play' && !G.animating && G.state && !G.state.over;
+    if (!on) { nHand.classList.remove('hurry'); return; }
+    const s = Math.max(0, Math.min(60, Math.ceil((MP.due - performance.now()) / 1000)));
+    nHand.textContent = s === 60 ? '1:00' : '0:' + String(s).padStart(2, '0');
+    nHand.classList.toggle('hurry', s <= 10);
+    if (s <= 10 && s > 0 && G.state.turn === 0 && !MP.nagged) { MP.nagged = true; say(PZ.paatiLine('mpHurry'), 'shock'); }
+  }
+
+  function mpEndButtons() {
+    MP.over = true;
+    nHand.textContent = '';
+    const again = $('[data-action="again"]');
+    again.textContent = 'Innoru round!';
+    again.disabled = false;
+  }
+
+  function mpRematch() {
+    const again = $('[data-action="again"]');
+    again.disabled = true;
+    again.textContent = `Waiting for ${O.n}…`;
+    MP.conn.send({ t: 'rematch' });
+  }
+
+  function mpRematchNote() {
+    MP.oppRematch = true; // may arrive while the last move is still animating; endGame reapplies it
+    $('.end-line-e').textContent = `${O.N} wants another round!`;
+  }
+
+  // The game was stopped: the other player left for good, or someone ran out of time.
+  function mpLeft(why = 'left') {
+    const wasOver = MP.over;
+    const name = O;
+    mpDrop();
+    G.gen++;
+    G.skip = true;
+    G.awaitUser = false;
+    clearTimeout(G.idleT);
+    setPlayable(null);
+    rowGlow(-1);
+    nHand.textContent = '';
+    const line = PZ.paatiLine(why === 'left' ? 'mpLeft' : 'mpTimeUp');
+    const what = why === 'left' ? `${name.N} left the game.` : why === 'slow-you' ? 'You ran out of time.' : `${name.N} ran out of time.`;
+    say(line, 'think', { moodMs: 0 });
+    narrate(what, 'Game over');
+    $('.end-face .paati').dataset.mood = 'think';
+    $('.end-kicker').textContent = why === 'left' ? 'Game over' : why === 'slow-you' ? 'You took too long' : `${name.short} took too long`;
+    $('.end-title').textContent = why === 'left' ? `${name.short} left` : why === 'slow-you' ? 'Time’s up!' : 'You win on time!';
+    if (!wasOver) {
+      $('[data-end="0"]').textContent = G.view.store[0];
+      $('[data-end="1"]').textContent = G.view.store[1];
+      $('.end-line').textContent = line.t;
+      $('.end-line-e').textContent = line.e;
+      $('.petals').innerHTML = '';
+    } else $('.end-line-e').textContent = what;
+    $('[data-action="again"]').hidden = true;
+    $('#end').hidden = false;
   }
 
   /* ---------------- tutorial: Ammachi's palgalaikazhagam ---------------- */
@@ -984,7 +1322,14 @@
     if (!b) return;
     sfx.unlock();
     const a = b.dataset.action;
-    if (a === 'play' || a === 'again') { sfx.tap(); startGame(); }
+    if (a === 'again' && MP) { sfx.tap(); mpRematch(); }
+    else if (a === 'play' || a === 'again') { sfx.tap(); startGame(); }
+    else if (a === 'mp') { sfx.tap(); mpOpen(); }
+    else if (a === 'mp-friend') { sfx.tap(); mpFriend(); }
+    else if (a === 'mp-random') { sfx.tap(); mpRandom(); }
+    else if (a === 'mp-cancel') mpCancel();
+    else if (a === 'mp-copy') mpCopy();
+    else if (a === 'mp-share') mpShare();
     else if (a === 'learn') { sfx.tap(); startTutorial(); }
     else if (a === 'rules') { sfx.tap(); openRules(); }
     else if (a === 'close-rules') closeRules();
@@ -1029,4 +1374,11 @@
   }
   addEventListener('hashchange', route);
   route();
+
+  // invite links: /?room=ABCDE
+  const invite = new URLSearchParams(location.search).get('room');
+  if (invite && PZ.net.ready && /^[A-Za-z2-9]{5}$/.test(invite)) {
+    mpView('wait', 'Joining the game…');
+    mpJoin(invite.toUpperCase(), 'friend');
+  }
 })();

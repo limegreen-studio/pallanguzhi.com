@@ -15,7 +15,7 @@
  *     on its own row. Most seeds wins.
  */
 (function () {
-  const PZ = (window.PZ = window.PZ || {});
+  const PZ = (globalThis.PZ = globalThis.PZ || {}); // also loaded by the multiplayer Worker in server/
   const N = 14;
   const GUARD = 4000;
 

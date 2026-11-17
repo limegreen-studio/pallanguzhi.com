@@ -1,0 +1,14 @@
+{
+  "name": "pallanguzhi-mp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "test": "node test/smoke.mjs && node test/cheat.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

@@ -1,0 +1,3 @@
+# Copy to .dev.vars to switch the Turnstile check on in `wrangler dev`.
+# This is Cloudflare's published always-pass test secret; it pairs with the test sitekey in js/net.js.
+TURNSTILE_SECRET=1x0000000000000000000000000000000AA
