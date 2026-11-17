@@ -4,7 +4,7 @@
 
   // The deployed Worker, e.g. 'https://pallanguzhi-mp.<account>.workers.dev'.
   // While this is empty the Multiplayer card stays "Coming soon" outside localhost.
-  const PROD = '';
+  const PROD = 'https://pallanguzhi-mp.harshnpatel.workers.dev';
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   const base = LOCAL ? `http://${location.hostname}:8787` : PROD;
 
